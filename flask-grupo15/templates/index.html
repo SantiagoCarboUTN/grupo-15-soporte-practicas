@@ -1,0 +1,187 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-12">
+        <h2 class="display-6 fw-bold text-dark">Panel de Rendimiento</h2>
+        <p class="text-muted">Progreso acumulado y control de equipamiento.</p>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-4 mb-md-0">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-secondary mb-3"><i class="bi bi-bar-chart-fill text-warning me-2"></i>Volumen (km)</h5>
+                <div style="position: relative; height: 220px; width: 100%;">
+                    <canvas id="volumeChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-secondary mb-3"><i class="bi bi-graph-up text-warning me-2"></i>Evolución de Ritmo</h5>
+                <div style="position: relative; height: 220px; width: 100%;">
+                    <canvas id="paceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-4 mb-4">
+        <div class="card shadow-sm border-0 h-100">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-secondary mb-3"><i class="bi bi-tag-fill me-2 text-warning"></i>Equipamiento Activo</h5>
+                {% if shoes %}
+                    {% for shoe in shoes %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="fw-semibold">{{ shoe.brand }} {{ shoe.model_name }}</span>
+                            <span class="text-muted small">{{ shoe.current_mileage | round(1) }} / {{ shoe.max_mileage }} km</span>
+                        </div>
+                        {% set porcentaje = (shoe.current_mileage / shoe.max_mileage) * 100 %}
+                        <div class="progress" style="height: 10px;">
+                            <div class="progress-bar bg-warning" role="progressbar" style="width: {{ porcentaje }}%"></div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <p class="text-muted small">No hay calzado registrado todavía.</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-8 mb-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-body">
+                <h5 class="card-title fw-bold text-secondary mb-3"><i class="bi bi-calendar3 me-2 text-warning"></i>Últimas Sesiones</h5>
+                
+                {% if activities %}
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Fecha</th>
+                                <th>Descripción</th>
+                                <th>Distancia</th>
+                                <th>Duración</th>
+                                <th>Ritmo Medio</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for act in activities %}
+                            <tr>
+                                <td class="text-muted small">{{ act.date.strftime('%d/%m/%Y') }}</td>
+                                <td class="fw-bold text-dark">{{ act.title }}</td>
+                                <td><span class="badge bg-dark fs-6">{{ act.distance_km }} km</span></td>
+                                <td>{{ act.duration_minutes }} min</td>
+                                <td class="text-success fw-semibold">
+                                    {% set total_seconds = (act.duration_minutes * 60) %}
+                                    {% set pace_seconds_per_km = (total_seconds / act.distance_km) | int %}
+                                    {% set pace_minutes = (pace_seconds_per_km // 60) | int %}
+                                    {% set pace_seconds = (pace_seconds_per_km % 60) | int %}
+                                    {{ pace_minutes }}:{{ "%02d" | format(pace_seconds) }} min/km
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                    <div class="text-center py-4">
+                        <i class="bi bi-clipboard-x display-4 text-muted"></i>
+                        <p class="text-muted mt-2">Aún no cargaste entrenamientos. ¡Es un buen momento para empezar!</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<script>
+    // Recibimos el JSON de Python de forma segura
+    const rawData = {{ chart_data | safe }};
+    
+    // Separamos los datos en listas para Chart.js
+    const labels = rawData.map(d => d.fecha);
+    const distancias = rawData.map(d => d.distancia);
+    const ritmos = rawData.map(d => d.ritmo);
+
+    // Función para mostrar el ritmo en formato min:seg (ej: 4.5 -> 4:30)
+    const formatPace = (decimalPace) => {
+        const mins = Math.floor(decimalPace);
+        const secs = Math.round((decimalPace - mins) * 60);
+        return mins + ":" + (secs < 10 ? "0" : "") + secs + " min/km";
+    };
+
+    // --- GRÁFICO 1: Volumen (Barras) ---
+    const ctxVolume = document.getElementById('volumeChart').getContext('2d');
+    new Chart(ctxVolume, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Kilómetros',
+                data: distancias,
+                backgroundColor: 'rgba(255, 193, 7, 0.7)', // Amarillo Bootstrap
+                borderColor: 'rgba(255, 193, 7, 1)',
+                borderWidth: 1,
+                borderRadius: 4
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: { y: { beginAtZero: true } }
+        }
+    });
+
+    // --- GRÁFICO 2: Ritmo (Línea) ---
+    const ctxPace = document.getElementById('paceChart').getContext('2d');
+    new Chart(ctxPace, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Ritmo Promedio',
+                data: ritmos,
+                borderColor: 'rgba(33, 37, 41, 1)', // Oscuro Bootstrap
+                backgroundColor: 'rgba(33, 37, 41, 0.1)',
+                borderWidth: 2,
+                pointBackgroundColor: 'rgba(255, 193, 7, 1)',
+                pointRadius: 4,
+                tension: 0.3, // Curva suave
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                y: {
+                    // Invertimos el eje Y: los ritmos más bajos (más rápidos) van arriba
+                    reverse: true, 
+                    ticks: {
+                        callback: function(value) { return formatPace(value); }
+                    }
+                }
+            },
+            plugins: {
+                tooltip: {
+                    callbacks: {
+                        label: function(context) { return formatPace(context.parsed.y); }
+                    }
+                }
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -1,0 +1,36 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-0">
+            <div class="card-body p-4">
+                <h3 class="card-title fw-bold mb-4 text-dark"><i class="bi bi-plus-circle-fill text-warning me-2"></i>Registrar Calzado</h3>
+                
+                <form action="/zapatilla/nueva" method="POST">
+                    <div class="mb-3">
+                        <label for="brand" class="form-label fw-semibold">Marca</label>
+                        <input type="text" class="form-control" id="brand" name="brand" placeholder="Ej: Nike, Asics, Saucony" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="model_name" class="form-label fw-semibold">Modelo</label>
+                        <input type="text" class="form-control" id="model_name" name="model_name" placeholder="Ej: Pegasus 40" required>
+                    </div>
+                    
+                    <div class="mb-4">
+                        <label for="max_mileage" class="form-label fw-semibold">Vida útil estimada (km)</label>
+                        <input type="number" step="10" class="form-control" id="max_mileage" name="max_mileage" value="600" required>
+                        <div class="form-text">Generalmente entre 500km y 800km.</div>
+                    </div>
+
+                    <div class="d-grid gap-2">
+                        <button type="submit" class="btn btn-warning fw-bold">Guardar Zapatilla</button>
+                        <a href="/" class="btn btn-outline-secondary btn-sm">Volver al Panel</a>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
