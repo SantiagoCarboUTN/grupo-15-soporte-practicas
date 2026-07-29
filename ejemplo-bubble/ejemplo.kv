@@ -1,0 +1,48 @@
+<FloatLayout>:
+    # Color de fondo gris oscuro para que resalte la Bubble
+    canvas.before:
+        Color:
+            rgba: 0.15, 0.15, 0.15, 1
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+    # El objeto que vamos a modificar
+    Label:
+        id: mi_etiqueta
+        text: "Selecciona una accion"
+        font_size: 32
+        pos_hint: {'center_x': .5, 'center_y': .7}
+
+    # Boton para mostrar la Bubble
+    Button:
+        text: "Ver opciones"
+        size_hint: None, None
+        size: 160, 50
+        pos_hint: {'center_x': .5, 'y': .1}
+        on_release: mi_burbuja.opacity = 1  # Hace aparecer la burbuja
+
+    # La Bubble representativa
+    Bubble:
+        id: mi_burbuja
+        size_hint: None, None
+        size: 220, 60
+        pos_hint: {'center_x': .5, 'center_y': .4}
+        arrow_pos: 'bottom_mid'
+        opacity: 0 # Empieza invisible
+        
+        background_image: ''           # Limpia la textura
+        background_color: (0, 0, 0, 1) # Color Negro
+
+        BoxLayout:
+            padding: 5
+            BubbleButton:
+                text: "Saludar"
+                on_release: 
+                    mi_etiqueta.text = "¡Hola Kivy!"
+                    mi_burbuja.opacity = 0
+            BubbleButton:
+                text: "Limpiar"
+                on_release: 
+                    mi_etiqueta.text = "Pantalla limpia"
+                    mi_burbuja.opacity = 0
